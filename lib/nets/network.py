@@ -273,7 +273,7 @@ class Network(nn.Module):
 
     return rois
 
-  def _region_classification(self, fc7, rois):
+  def _region_classification(self, fc7, rois, bottom):
     rois = rois.detach()
 
     x1 = rois[:, 1::4] / 16.0
@@ -283,6 +283,12 @@ class Network(nn.Module):
     
     owidth = x2 - x1
     oheight = y2 - y1
+  
+    #Normalize
+    height = bottom.size(2)
+    width = bottom.size(3)
+    owidth = owidth / (width - 1)
+    oheight = oheight / (height - 1)
     oarea = owidth * oheight
     
     #cls_feature = self.cls_score_net_1(fc7)
@@ -397,7 +403,7 @@ class Network(nn.Module):
       torch.backends.cudnn.benchmark = True # benchmark because now the input size are fixed
     fc7 = self._head_to_tail(pool5)
 
-    cls_prob, bbox_pred = self._region_classification(fc7,rois)
+    cls_prob, bbox_pred = self._region_classification(fc7,rois,net_conv)
     
     for k in self._predictions.keys():
       self._score_summaries[k] = self._predictions[k]
