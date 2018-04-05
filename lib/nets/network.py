@@ -432,6 +432,8 @@ class Network(nn.Module):
     normal_init(self.rpn_cls_score_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.rpn_bbox_pred_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.cls_score_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_1, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_2, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.bbox_pred_net, 0, 0.001, cfg.TRAIN.TRUNCATED)
 
   # Extract the head feature maps, for example for vgg16 it is conv5_3
