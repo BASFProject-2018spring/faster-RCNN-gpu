@@ -273,6 +273,17 @@ class Network(nn.Module):
     return rois
 
   def _region_classification(self, fc7, rois):
+    rois = rois.detach()
+
+    x1 = rois[:, 1::4] / 16.0
+    y1 = rois[:, 2::4] / 16.0
+    x2 = rois[:, 3::4] / 16.0
+    y2 = rois[:, 4::4] / 16.0
+    
+    owidth = x2 - x1
+    oheight = y2 - y1
+    
+    
     cls_score = self.cls_score_net(fc7, rois)
     cls_pred = torch.max(cls_score, 1)[1]
     cls_prob = F.softmax(cls_score)
@@ -318,8 +329,10 @@ class Network(nn.Module):
     self.rpn_cls_score_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 2, [1, 1])
     
     self.rpn_bbox_pred_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 4, [1, 1])
-
-    self.cls_score_net = nn.Linear(self._fc7_channels, self._num_classes)
+    self.cls_score_net_1 = nn.Linear(self._fc7_channels+2, 100)
+    self.cls_relu = nn.ReLU(inplace=True)
+    self.cls_score_net_2 = nn.Linear(100, 100)
+    self.cls_score_net = nn.Linear(100, self._num_classes)
     self.bbox_pred_net = nn.Linear(self._fc7_channels, self._num_classes * 4)
 
     self.init_weights()
