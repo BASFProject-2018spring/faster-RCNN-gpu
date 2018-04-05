@@ -120,25 +120,16 @@ def run(net, image_name):
     CONF_THRESH = 0.6
     NMS_THRESH = 0.7
     result = {}
-    cls_all_boxes = np.array([[0,0,0,0]])
-    cls_all_scores = np.array([])
-    cls_all_cls = []
+    
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
         cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
         cls_scores = scores[:, cls_ind]
-        cls_all_boxes = np.vstack((cls_all_boxes,cls_boxes)).astype(np.float32)
-        cls_all_scores = np.append(cls_all_scores,cls_scores)
-        cls_all_cls.extend([cls]*len(cls_scores))
-    cls_all_boxes = cls_all_boxes[1:]
-    dets = np.hstack((cls_all_boxes,
-                      cls_all_scores[:, np.newaxis])).astype(np.float32)
-    keep = nms(torch.from_numpy(dets).cuda(), NMS_THRESH).cpu().numpy()
-    dets = dets[keep, :]
-    cls_all_cls = np.array(cls_all_cls)
-    cls_all_cls = cls_all_cls[keep]
-    for cls_ind, cls in enumerate(CLASSES[1:]):
-        result[cls] = dets[cls_all_cls==cls,:]
+        dets = np.hstack((cls_boxes,
+                          cls_scores[:, np.newaxis])).astype(np.float32)
+        keep = nms(torch.from_numpy(dets).cuda(), NMS_THRESH)
+        dets = dets[keep.cpu().numpy(), :]
+        result[cls] = dets
     output_result(image_name, im, result,CONF_THRESH)
 
 def parse_args():
