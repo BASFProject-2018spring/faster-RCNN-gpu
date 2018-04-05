@@ -283,8 +283,13 @@ class Network(nn.Module):
     owidth = x2 - x1
     oheight = y2 - y1
     
+    new_fc_feature = torch.cat((fc7, owidth, oheight), 1)
+    cls_score = self.cls_score_net_1(new_fc_feature)
+    cls_score = self.cls_relu(cls_score)
+    cls_score = self.cls_score_net_2(cls_score)
+    cls_score = self.cls_relu(cls_score)
+    cls_score = self.cls_score_net(cls_score)
     
-    cls_score = self.cls_score_net(fc7, rois)
     cls_pred = torch.max(cls_score, 1)[1]
     cls_prob = F.softmax(cls_score)
     bbox_pred = self.bbox_pred_net(fc7)
