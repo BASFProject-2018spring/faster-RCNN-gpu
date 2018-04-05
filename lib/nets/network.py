@@ -286,7 +286,7 @@ class Network(nn.Module):
     oarea = owidth * oheight
     
     cls_feature = self.cls_score_net_1(fc7)
-    cls_feature = self.cls_relu(cls_score)
+    cls_feature = self.cls_relu(cls_feature)
     cls_feature = torch.cat((cls_feature,owidth,oheight,oarea),1)
     cls_feature = self.cls_score_net_2(cls_new_feature)
     cls_feature = self.cls_relu(cls_feature)
