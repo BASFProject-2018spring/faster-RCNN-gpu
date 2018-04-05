@@ -272,8 +272,8 @@ class Network(nn.Module):
 
     return rois
 
-  def _region_classification(self, fc7):
-    cls_score = self.cls_score_net(fc7)
+  def _region_classification(self, fc7, rois):
+    cls_score = self.cls_score_net(fc7, rois)
     cls_pred = torch.max(cls_score, 1)[1]
     cls_prob = F.softmax(cls_score)
     bbox_pred = self.bbox_pred_net(fc7)
@@ -371,7 +371,7 @@ class Network(nn.Module):
       torch.backends.cudnn.benchmark = True # benchmark because now the input size are fixed
     fc7 = self._head_to_tail(pool5)
 
-    cls_prob, bbox_pred = self._region_classification(fc7)
+    cls_prob, bbox_pred = self._region_classification(fc7,rois)
     
     for k in self._predictions.keys():
       self._score_summaries[k] = self._predictions[k]
