@@ -275,7 +275,7 @@ class Network(nn.Module):
 
   def _region_classification(self, fc7, rois, bottom):
     rois = rois.detach()
-
+    bottom = bottom.detach()
     x1 = rois[:, 1::4] / 16.0
     y1 = rois[:, 2::4] / 16.0
     x2 = rois[:, 3::4] / 16.0
