@@ -282,8 +282,9 @@ class Network(nn.Module):
     
     owidth = x2 - x1
     oheight = y2 - y1
+    oarea = owidth * oheight
     
-    new_fc_feature = torch.cat((fc7, owidth, oheight), 1)
+    new_fc_feature = torch.cat((fc7, owidth, oheight,oarea), 1)
     cls_score = self.cls_score_net_1(new_fc_feature)
     cls_score = self.cls_relu(cls_score)
     cls_score = self.cls_score_net_2(cls_score)
@@ -334,7 +335,7 @@ class Network(nn.Module):
     self.rpn_cls_score_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 2, [1, 1])
     
     self.rpn_bbox_pred_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 4, [1, 1])
-    self.cls_score_net_1 = nn.Linear(self._fc7_channels+2, 100)
+    self.cls_score_net_1 = nn.Linear(self._fc7_channels+3, 100)
     self.cls_relu = nn.ReLU(inplace=True)
     self.cls_score_net_2 = nn.Linear(100, 100)
     self.cls_score_net = nn.Linear(100, self._num_classes)
