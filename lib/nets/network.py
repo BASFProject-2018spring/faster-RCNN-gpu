@@ -275,18 +275,18 @@ class Network(nn.Module):
 
   def _region_classification(self, fc7, rois):
     rois = rois.detach()
-    x1 = rois[:, 1::4] / 16.0
-    y1 = rois[:, 2::4] / 16.0
-    x2 = rois[:, 3::4] / 16.0
-    y2 = rois[:, 4::4] / 16.0
+    x1 = rois[:, 1::4]
+    y1 = rois[:, 2::4]
+    x2 = rois[:, 3::4]
+    y2 = rois[:, 4::4]
     
-    owidth = (x2 - x1) / 100.0
-    oheight = (y2 - y1) / 100.0
+    owidth = (x2 - x1) / 80.0
+    oheight = (y2 - y1) / 80.0
     oarea = owidth * oheight
     
-    cls_feature = self.cls_score_net_1(torch.cat((fc7,fc7*oarea),1))
+    cls_feature = self.cls_score_net_1(torch.cat((fc7,fc7*oarea,owidth,oheight,oarea,owidth*owidth,oheight*oheight,oarea*oarea),1))
     cls_feature = self.cls_relu(cls_feature)
-    cls_feature = self.cls_score_net_2(torch.cat((cls_feature,owidth,oheight,oarea,owidth*owidth,oheight*oheight,oarea*oarea),1))
+    cls_feature = self.cls_score_net_2(cls_feature)
     cls_feature = self.cls_relu(cls_feature)
     #cls_feature = self.cls_relu(cls_feature)
     cls_feature = self.cls_score_net_3(cls_feature)
@@ -339,12 +339,12 @@ class Network(nn.Module):
     self.rpn_cls_score_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 2, [1, 1])
     
     self.rpn_bbox_pred_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 4, [1, 1])
-    self.cls_score_net_1 = nn.Linear(self._fc7_channels*2, self._fc7_channels)
+    self.cls_score_net_1 = nn.Linear(self._fc7_channels*2+6, 1024)
     self.cls_relu = nn.ReLU(inplace=True)
-    self.cls_score_net_2 = nn.Linear(self._fc7_channels+6, self._fc7_channels)
-    self.cls_score_net_3 = nn.Linear(self._fc7_channels, self._fc7_channels)
+    self.cls_score_net_2 = nn.Linear(1024, 1024)
+    self.cls_score_net_3 = nn.Linear(1024, 1024)
     #self.cls_score_net_4 = nn.Linear(10, 10)
-    self.cls_score_net_5 = nn.Linear(self._fc7_channels, self._num_classes)
+    self.cls_score_net_5 = nn.Linear(1024, self._num_classes)
     self.bbox_pred_net = nn.Linear(self._fc7_channels, self._num_classes * 4)
 
     self.init_weights()
