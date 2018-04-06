@@ -280,8 +280,8 @@ class Network(nn.Module):
     x2 = rois[:, 3::4]
     y2 = rois[:, 4::4]
     
-    owidth = (x2 - x1) / 80.0
-    oheight = (y2 - y1) / 80.0
+    owidth = (x2 - x1) / 50.0
+    oheight = (y2 - y1) / 50.0
     oarea = owidth * oheight
     
     cls_feature = self.cls_score_net_1(torch.cat((fc7,fc7*oarea,owidth,oheight,oarea,owidth*owidth,oheight*oheight,oarea*oarea),1))
