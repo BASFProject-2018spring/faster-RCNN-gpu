@@ -225,7 +225,7 @@ class Network(nn.Module):
     self._losses['rpn_loss_box'] = rpn_loss_box
 
     # Classification is more important
-    loss = 2 * cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+    loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
     self._losses['total_loss'] = loss
 
     for k in self._losses.keys():
@@ -273,34 +273,27 @@ class Network(nn.Module):
 
     return rois
 
-  def _region_classification(self, fc7, rois, bottom):
+  def _region_classification(self, fc7, rois):
     rois = rois.detach()
-    bottom = bottom.detach()
     x1 = rois[:, 1::4] / 16.0
     y1 = rois[:, 2::4] / 16.0
     x2 = rois[:, 3::4] / 16.0
     y2 = rois[:, 4::4] / 16.0
     
-    owidth = x2 - x1
-    oheight = y2 - y1
-  
-    #Normalize
-    height = bottom.size(2)
-    width = bottom.size(3)
-    owidth = owidth / (width - 1)
-    oheight = oheight / (height - 1)
+    owidth = (x2 - x1) / 100.0
+    oheight = (y2 - y1) / 100.0
     oarea = owidth * oheight
     
-    #cls_feature = self.cls_score_net_1(fc7)
+    cls_feature = self.cls_score_net_1(torch.cat((fc7,fc7*oarea),1))
+    cls_feature = self.cls_relu(cls_feature)
+    cls_feature = self.cls_score_net_2(torch.cat((cls_feature,owidth,oheight,oarea,owidth*owidth,oheight*oheight,oarea*oarea),1))
+    cls_feature = self.cls_relu(cls_feature)
     #cls_feature = self.cls_relu(cls_feature)
-    cls_score = self.cls_score_net_1(torch.cat((fc7,owidth,oheight,oarea,owidth*owidth,oheight*oheight,oarea*oarea),1))
-    #cls_feature = self.cls_score_net_2(cls_feature)
-    #cls_feature = self.cls_relu(cls_feature)
-    #cls_feature = self.cls_score_net_3(cls_feature)
-    #cls_feature = self.cls_relu(cls_feature)
+    cls_feature = self.cls_score_net_3(cls_feature)
+    cls_feature = self.cls_relu(cls_feature)
     #cls_feature = self.cls_score_net_4(cls_feature)
     #cls_feature = self.cls_relu(cls_feature)
-    #cls_score = self.cls_score_net_5(cls_feature)
+    cls_score = self.cls_score_net_5(cls_feature)
     
     cls_pred = torch.max(cls_score, 1)[1]
     cls_prob = F.softmax(cls_score)
@@ -346,12 +339,12 @@ class Network(nn.Module):
     self.rpn_cls_score_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 2, [1, 1])
     
     self.rpn_bbox_pred_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 4, [1, 1])
-    self.cls_score_net_1 = nn.Linear(self._fc7_channels+6, self._num_classes)
-    #self.cls_relu = nn.ReLU(inplace=True)
-    #self.cls_score_net_2 = nn.Linear(13, 10)
-    #self.cls_score_net_3 = nn.Linear(10, 10)
+    self.cls_score_net_1 = nn.Linear(self._fc7_channels*2, self._fc7_channels)
+    self.cls_relu = nn.ReLU(inplace=True)
+    self.cls_score_net_2 = nn.Linear(self._fc7_channels+6, self._fc7_channels)
+    self.cls_score_net_3 = nn.Linear(self._fc7_channels, self._fc7_channels)
     #self.cls_score_net_4 = nn.Linear(10, 10)
-    #self.cls_score_net_5 = nn.Linear(10, self._num_classes)
+    self.cls_score_net_5 = nn.Linear(self._fc7_channels, self._num_classes)
     self.bbox_pred_net = nn.Linear(self._fc7_channels, self._num_classes * 4)
 
     self.init_weights()
@@ -403,7 +396,7 @@ class Network(nn.Module):
       torch.backends.cudnn.benchmark = True # benchmark because now the input size are fixed
     fc7 = self._head_to_tail(pool5)
 
-    cls_prob, bbox_pred = self._region_classification(fc7,rois,net_conv)
+    cls_prob, bbox_pred = self._region_classification(fc7,rois)
     
     for k in self._predictions.keys():
       self._score_summaries[k] = self._predictions[k]
@@ -446,10 +439,10 @@ class Network(nn.Module):
     normal_init(self.rpn_cls_score_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.rpn_bbox_pred_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.cls_score_net_1, 0, 0.01, cfg.TRAIN.TRUNCATED)
-    #normal_init(self.cls_score_net_2, 0, 0.01, cfg.TRAIN.TRUNCATED)
-    #normal_init(self.cls_score_net_3, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_2, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_3, 0, 0.01, cfg.TRAIN.TRUNCATED)
     #normal_init(self.cls_score_net_4, 0, 0.01, cfg.TRAIN.TRUNCATED)
-    #normal_init(self.cls_score_net_5, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_5, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.bbox_pred_net, 0, 0.001, cfg.TRAIN.TRUNCATED)
 
   # Extract the head feature maps, for example for vgg16 it is conv5_3
