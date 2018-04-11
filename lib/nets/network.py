@@ -224,6 +224,7 @@ class Network(nn.Module):
     self._losses['rpn_cross_entropy'] = rpn_cross_entropy
     self._losses['rpn_loss_box'] = rpn_loss_box
 
+    # Classification is more important
     loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
     self._losses['total_loss'] = loss
 
@@ -272,8 +273,28 @@ class Network(nn.Module):
 
     return rois
 
-  def _region_classification(self, fc7):
-    cls_score = self.cls_score_net(fc7)
+  def _region_classification(self, fc7, rois):
+    rois = rois.detach()
+    x1 = rois[:, 1::4]
+    y1 = rois[:, 2::4]
+    x2 = rois[:, 3::4]
+    y2 = rois[:, 4::4]
+    
+    owidth = (x2 - x1) / 50.0
+    oheight = (y2 - y1) / 50.0
+    oarea = owidth * oheight
+    
+    cls_feature = self.cls_score_net_1(torch.cat((fc7,fc7*oarea,owidth,oheight,oarea,owidth*owidth,oheight*oheight,oarea*oarea),1))
+    cls_feature = self.cls_relu(cls_feature)
+    cls_feature = self.cls_score_net_2(cls_feature)
+    cls_feature = self.cls_relu(cls_feature)
+    #cls_feature = self.cls_relu(cls_feature)
+    cls_feature = self.cls_score_net_3(cls_feature)
+    cls_feature = self.cls_relu(cls_feature)
+    #cls_feature = self.cls_score_net_4(cls_feature)
+    #cls_feature = self.cls_relu(cls_feature)
+    cls_score = self.cls_score_net_5(cls_feature)
+    
     cls_pred = torch.max(cls_score, 1)[1]
     cls_prob = F.softmax(cls_score)
     bbox_pred = self.bbox_pred_net(fc7)
@@ -318,8 +339,12 @@ class Network(nn.Module):
     self.rpn_cls_score_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 2, [1, 1])
     
     self.rpn_bbox_pred_net = nn.Conv2d(cfg.RPN_CHANNELS, self._num_anchors * 4, [1, 1])
-
-    self.cls_score_net = nn.Linear(self._fc7_channels, self._num_classes)
+    self.cls_score_net_1 = nn.Linear(self._fc7_channels*2+6, 1024)
+    self.cls_relu = nn.ReLU(inplace=True)
+    self.cls_score_net_2 = nn.Linear(1024, 1024)
+    self.cls_score_net_3 = nn.Linear(1024, 1024)
+    #self.cls_score_net_4 = nn.Linear(10, 10)
+    self.cls_score_net_5 = nn.Linear(1024, self._num_classes)
     self.bbox_pred_net = nn.Linear(self._fc7_channels, self._num_classes * 4)
 
     self.init_weights()
@@ -371,7 +396,7 @@ class Network(nn.Module):
       torch.backends.cudnn.benchmark = True # benchmark because now the input size are fixed
     fc7 = self._head_to_tail(pool5)
 
-    cls_prob, bbox_pred = self._region_classification(fc7)
+    cls_prob, bbox_pred = self._region_classification(fc7,rois)
     
     for k in self._predictions.keys():
       self._score_summaries[k] = self._predictions[k]
@@ -413,7 +438,11 @@ class Network(nn.Module):
     normal_init(self.rpn_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.rpn_cls_score_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.rpn_bbox_pred_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
-    normal_init(self.cls_score_net, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_1, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_2, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_3, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    #normal_init(self.cls_score_net_4, 0, 0.01, cfg.TRAIN.TRUNCATED)
+    normal_init(self.cls_score_net_5, 0, 0.01, cfg.TRAIN.TRUNCATED)
     normal_init(self.bbox_pred_net, 0, 0.001, cfg.TRAIN.TRUNCATED)
 
   # Extract the head feature maps, for example for vgg16 it is conv5_3
