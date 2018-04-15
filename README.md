@@ -1,12 +1,12 @@
 Forked from [pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn)
 
-With flags optimized and code rewritten for our project. 
+With flags optimized and code rewritten for our project. The classification FC layers are slightly changed to include RPN box size features.  
 
 Some CUDA implemented layers should be compiled before you try to train the network or predict using the network. See original readme below for details.
 
 For the GPU version training, you will need to follow the original readme to prepare the training data and pre-trained weights. Use [VOC_format_builder](https://github.com/BASFProject-2018spring/VOC_format_builder) to prepare the data into VOC format.
 
-We wrote a python script to process all images under a certain folder using a trained model. All raw boxes' classes, locations and confidences will be generated and can be used by other scripts...
+We wrote a python script (tools/run.py) to process all images under a certain folder using a trained model. All raw boxes' classes, locations and confidences will be generated and can be used by other scripts...
 
 The pretrained model is attached in the RELEASE tab.
 
