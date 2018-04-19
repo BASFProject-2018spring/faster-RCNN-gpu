@@ -1,6 +1,6 @@
 Forked from [pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn)
 
-With flags optimized and code rewritten for our project. The classification FC layers are slightly changed to include RPN box size features.  
+With flags optimized and code rewritten for our project. **The classification FC layers are slightly changed to include RPN box size features** (SA-RCNN).  
 
 Some CUDA implemented layers should be compiled before you try to train the network or predict using the network. See original readme below for details.
 
