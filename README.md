@@ -8,6 +8,10 @@ For the GPU version training, you will need to follow the original readme to pre
 
 We wrote a python script (tools/run.py) to process all images under a certain folder using a trained model. All raw boxes' classes, locations and confidences will be generated and can be used by other scripts...
 
+ ```bash
+ python run.sh --net res152
+ ```
+
 The pretrained model is attached in the RELEASE tab.
 
 BELOW IS THE ORIGINAL README:
